@@ -1,0 +1,78 @@
+@font-face {
+    font-family: "Montserrat";
+    src: url("Montserrat/Montserrat-Medium.ttf") format("truetype");
+}
+
+body {
+    padding: 2%;
+    font-family: 'Montserrat';
+}
+
+.code-title {
+    color: black;
+    background-color: aqua;
+    border-radius: 8px;
+    border-style: solid;
+    border-width: 0.125em;
+    border-color: black;
+    padding: 0.125em;
+}
+
+.panels {
+    margin-top: 2em;
+    width: 100%;
+    height: 50vh;
+    float: center;
+    text-align: center;
+}
+
+.panel {
+    text-align: left;
+    height: 100%;
+    float: left;
+}
+
+#layout-panel {
+    width: 47%;
+    height: 100%;
+    margin-right: 4%;
+}
+
+#display-panel {
+    width: 47%;
+    height: 100%;
+}
+
+.panel-title {
+    display: inline-block;
+    font-size: 18pt;
+    font-weight: bold;
+    padding: 0.25em;
+}
+
+.html-display {
+    height: 100%;
+    border-radius: 8px;
+    border-style: solid;
+    border-width: 0.125em;
+    border-color: black;
+}
+
+.scrollbox {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: auto;
+}
+
+.display-body {
+    display: block;
+    padding: 2%;
+}
+
+.panel canvas {
+    border-radius: 8px;
+    border-style: solid;
+    border-width: 0.125em;
+    border-color: black;
+}

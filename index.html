@@ -1,3 +1,103 @@
-<h1>
-    Hello world!
-</h1>
+<!DOCTYPE html>
+<head>
+    <title>PandaCode</title>
+    <link rel="stylesheet" href="style.css">
+    <meta charset="utf-8">
+    <meta name="author" content="Team Pandas">
+    <meta name="description" content="Learn web programming!">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="PandaCode">
+    <meta property="og:description" content="Learn web programming!">
+    <script>
+        window.requestAnimFrame = (function(){
+            // Glue code found on stackoverflow :)
+            return window.requestAnimationFrame       
+                || window.webkitRequestAnimationFrame 
+                || window.mozRequestAnimationFrame    
+                || ((callback) => window.setTimeout(callback, 1000 / 60));
+        })();
+      
+        window.onload = () => {
+            let theCanvas = document.getElementById("ui-canvas");
+    
+            function fitToContainer(canvas){
+                // Make it visually fill the positioned parent
+                canvas.style.width ='100%';
+                canvas.style.height='100%';
+                // ...then set the internal size to match
+                canvas.width  = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            }
+
+            let theDisplay = document.getElementById("display");
+
+            // Tracking mouse position. We can use mouse.x and mouse.y to get
+            // mouse coordinates within to the canvas.
+            let mouse = { x: 0, y: 0 };
+            theCanvas.onmousemove = (e) => {
+                mouse.x = e.offsetX;
+                mouse.y = e.offsetY;
+            };
+            function isMouseIn(x, y, w, h) {
+                return mouse.x >= x && mouse.y >= y 
+                    && mouse.x <= x + w && mouse.y <= y + h;
+            }
+
+            function render(ctx) {
+                // Example render behavior. We'll want to replace the button rendering
+                // with something more sophisticated in the future.
+                fitToContainer(theCanvas);
+                
+                // Clear canvas to start a new frame.
+                ctx.clearRect(0, 0, ctx.width, ctx.height);
+
+                // Draw button background.
+                ctx.rect(8, 8, 120, 60);
+                ctx.fillStyle = isMouseIn(8, 8, 120, 60) ? "blue" : "red";
+                ctx.fill();
+
+                // Draw button label.
+                ctx.font = "12pt Montserrat";
+                ctx.fillStyle = "black";
+                ctx.fillText("Add Element", 16, 42);
+            }
+
+            theCanvas.onclick = (e) => {
+                // Example click behavior. We'll want to replace this with something
+                // more sophisticated later (like iterating through a button list).
+                if (isMouseIn(8, 8, 120, 60)) theDisplay.innerHTML += "More text...<br>"
+            }
+            
+            (function renderFrame() {
+                requestAnimationFrame(renderFrame);
+                render(theCanvas.getContext("2d"));
+            })();
+        }
+    </script>
+</head>
+<body>
+    <h1>
+        Panda<span class="code-title">Code</span>
+    </h1>
+    <div class="panels">
+        <div class="panel" id="layout-panel">
+            <span class="panel-title">Layout</span><br>
+            <canvas id="ui-canvas">
+                <!-- Our GUI will be implemented in this canvas element. -->
+            </canvas>
+        </div><div class="panel" id="display-panel">
+            <span class="panel-title">Display</span><br>
+            <div class="html-display">
+                <div class="scrollbox">
+                    <div class="display-body" id="display">
+                        <!-- 
+                            Whatever site preview or code display we want should
+                            go in the innerHtml of this div. 
+                        -->
+                        Example text...<br>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
