@@ -33,6 +33,22 @@
 
             let theDisplay = document.getElementById("display");
 
+            let downloadTab = document.getElementById("download-tab");
+            downloadTab.onclick = (e) => {
+                var html = theDisplay.innerHTML;
+                var link = document.createElement('a');
+                var fileName = 'pandaCode.html';
+
+                link.setAttribute('download', fileName);
+                link.setAttribute('href', 'data:text/plain;charset=utf-8, ' + encodeURIComponent(html));
+                link.click();
+            }
+            let renderTab = document.getElementById("render-tab");
+            renderTab.onclick = (e) => {}
+            let htmlTab = document.getElementById("html-tab");
+            htmlTab.onclick = (e) => {}
+            
+
             // Tracking mouse position. We can use mouse.x and mouse.y to get
             // mouse coordinates within to the canvas.
             let mouse = { x: 0, y: 0 };
@@ -93,7 +109,10 @@
                 <!-- Our GUI will be implemented in this canvas element. -->
             </canvas>
         </div><div class="panel" id="display-panel">
-            <span class="panel-title">Display</span><br>
+            <span class="panel-title">Display</span>
+            <span class="panel-tab" id="download-tab">Download</span>
+            <span class="panel-tab" id="render-tab">Render</span>
+            <span class="panel-tab" id="html-tab">HTML</span><br>
             <div class="html-display">
                 <div class="scrollbox">
                     <div class="display-body" id="display">
