@@ -21,6 +21,8 @@
       
         window.onload = () => {
             let theCanvas = document.getElementById("ui-canvas");
+
+            var htmlInput = "<title>input</title>";
     
             function fitToContainer(canvas){
                 // Make it visually fill the positioned parent
@@ -32,21 +34,6 @@
             }
 
             let theDisplay = document.getElementById("display");
-
-            let downloadTab = document.getElementById("download-tab");
-            downloadTab.onclick = (e) => {
-                var html = theDisplay.innerHTML;
-                var link = document.createElement('a');
-                var fileName = 'pandaCode.html';
-
-                link.setAttribute('download', fileName);
-                link.setAttribute('href', 'data:text/plain;charset=utf-8, ' + encodeURIComponent(html));
-                link.click();
-            }
-            let renderTab = document.getElementById("render-tab");
-            renderTab.onclick = (e) => {}
-            let htmlTab = document.getElementById("html-tab");
-            htmlTab.onclick = (e) => {}
             
 
             // Tracking mouse position. We can use mouse.x and mouse.y to get
@@ -85,6 +72,42 @@
                 // more sophisticated later (like iterating through a button list).
                 if (isMouseIn(8, 8, 120, 60)) theDisplay.innerHTML += "More text...<br>"
             }
+
+            let downloadTab = document.getElementById("download-tab");
+            downloadTab.onclick = (e) => {
+                var html = theDisplay.innerHTML;
+                var link = document.createElement('a');
+                var fileName = 'pandaCode.html';
+
+                link.setAttribute('download', fileName);
+                link.setAttribute('href', 'data:text/plain;charset=utf-8, ' + encodeURIComponent(html));
+                link.click();
+            }
+            let renderTab = document.getElementById("render-tab");
+            // const fs = require('fs');
+            renderTab.onclick = (e) => {
+                // fs.writeFile('input.html', htmlInput, (err) => {
+                //     if(err) throw err;
+                // });
+
+                let textDisplay = document.getElementById('display');
+                let iframeDisplay = document.getElementById('render');
+
+                if (textDisplay.style.display == 'block') {
+                    textDisplay.style.display = 'none'
+                    iframeDisplay.style.display = 'block'
+                }
+            }
+            let htmlTab = document.getElementById("html-tab");
+            htmlTab.onclick = (e) => {
+                let textDisplay = document.getElementById('display');
+                let iframeDisplay = document.getElementById('render');
+
+                if (iframeDisplay.style.display == 'block') {
+                    iframeDisplay.style.display = 'none'
+                    textDisplay.style.display = 'block'
+                }
+            }
             
             (function renderFrame() {
                 requestAnimationFrame(renderFrame);
@@ -115,13 +138,14 @@
             <span class="panel-tab" id="html-tab">HTML</span><br>
             <div class="html-display">
                 <div class="scrollbox">
-                    <div class="display-body" id="display">
+                    <div class="display-body" id="display" style="display: block">
                         <!-- 
                             Whatever site preview or code display we want should
                             go in the innerHtml of this div. 
                         -->
                         Example text...<br>
                     </div>
+                    <iframe id="render" src="input.html" width="99%" height="98%" style="display: none"></iframe>
                 </div>
             </div>
         </div>
