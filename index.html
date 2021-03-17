@@ -132,13 +132,13 @@
 
             class Link extends Element {
                 html() {
-                    return `<${this.button.tag} href=\"${this.input.value()}\">${this.input.value()}</${this.button.tag}`;
+                    return `<p><${this.button.tag} href=\"${this.input.value()}\">${this.input.value()}</${this.button.tag}></p>`;
                 }
             }
 
             class Image extends Element {
                 html() {
-                    return `<p><${this.button.tag} src=${this.input.value()}></p>`;
+                    return `<${this.button.tag} src=${this.input.value()}>`;
                 }
             }
 
@@ -183,7 +183,7 @@
 
             let downloadTab = document.getElementById("download-tab");
             downloadTab.onclick = (e) => {
-                var html = theDisplay.innerHTML;
+                var html = thePreview.innerHTML;
                 var link = document.createElement('a');
                 var fileName = 'pandaCode.html';
 
