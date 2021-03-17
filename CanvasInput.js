@@ -1438,7 +1438,7 @@
       let textY = self._y + self._extraY + 4;
       let i = Math.floor((y - textY) / (this._fontSize + 2));
       let n = 0;
-      for (let j = 0; j < i; j ++) n += lines[j].length;
+      for (let j = 0; j < i && j < lines.length; j ++) n += lines[j].length;
       if (i < 0 || i >= lines.length) return pos;
       if (x - (self._x + self._extraX) < self._textWidth(lines[i])) {
         // loop through each character to identify the position
