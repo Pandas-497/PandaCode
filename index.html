@@ -34,8 +34,8 @@
                 canvas.height = canvas.offsetHeight;
             }
 
-            let theDisplay = document.getElementById("display");
-            
+            let thePreview = document.getElementById("preview");
+            let theHTML = document.getElementById("html");
 
             // Tracking mouse position. We can use mouse.x and mouse.y to get
             // mouse coordinates within to the canvas.
@@ -61,13 +61,13 @@
 
                 hovered(i) {
                     let x = 8;
-                    let y = i * 88 + 8;
-                    return mouse.x >= x && mouse.y >= y && mouse.x <= x + 80 && mouse.y <= y + 80;
+                    let y = i * 48 + 8;
+                    return mouse.x >= x && mouse.y >= y && mouse.x <= x + 80 && mouse.y <= y + 40;
                 }
 
                 click(i, canvas) {
                     let x = 8;
-                    let y = i * 88 + 8;
+                    let y = i * 48 + 8;
                     if (this.hovered(i)) {
                         elements.push(new Element(this, canvas, 240, 120));
                     }
@@ -76,12 +76,12 @@
                 draw(i, ctx) {
                     // Compute position for ith button.
                     let x = 8;
-                    let y = i * 88 + 8;
+                    let y = i * 48 + 8;
 
                     // Draw button background.
                     ctx.fillStyle = this.color;
                     let hovering = this.hovered(i);
-                    ctx.fillRect(hovering ? x - 2 : x, hovering ? y - 2 : y, hovering ? 84 : 80, hovering ? 84 : 80);
+                    ctx.fillRect(hovering ? x - 2 : x, hovering ? y - 2 : y, hovering ? 84 : 80, hovering ? 44 : 40);
                     
                     // Draw button label.
                     ctx.font = "12pt Montserrat";
@@ -98,29 +98,34 @@
                     this.input = new CanvasInput({
                         canvas: canvas,
                         width: w - 28,
-                        height: 60,
+                        height: 24,
                         borderRadius: 0,
+                        borderColor: "white",
                         boxShadow: "0px 0px 0px 0px",
                         innerShadow: "0px 0px 0px 0px"
                     });
                 }
 
                 height() {
-                    return 60 + this.input.height();
+                    return 56 + this.input.height();
                 }
 
                 draw(x, y, ctx) {
                     ctx.fillStyle = this.button.color;
                     ctx.fillRect(x, y, this.w, this.height());
                     this.input._x = x + 8;
-                    this.input._y = y + 24;
+                    this.input._y = y + 28;
                     this.input.render(ctx);
                     ctx.font = "10pt Montserrat";
                     ctx.fillStyle = "white";
-                    ctx.fillText(`<${this.button.tag}>`, x + 8, y + 18);
+                    ctx.fillText(`<${this.button.tag}>`, x + 8, y + 19);
                     ctx.font = "10pt Montserrat";
                     ctx.fillStyle = "white";
-                    ctx.fillText(`</${this.button.tag}>`, x + 8, y + 52 + this.input.height());
+                    ctx.fillText(`</${this.button.tag}>`, x + 8, y + 47 + this.input.height());
+                }
+
+                html() {
+                    return `<${this.button.tag}>${this.input.value()}</${this.button.tag}>`;
                 }
             }
 
@@ -171,29 +176,29 @@
                 link.setAttribute('href', 'data:text/plain;charset=utf-8, ' + encodeURIComponent(html));
                 link.click();
             }
-            let renderTab = document.getElementById("render-tab");
+            let previewTab = document.getElementById("preview-tab");
             // const fs = require('fs');
-            renderTab.onclick = (e) => {
+            previewTab.onclick = (e) => {
                 // fs.writeFile('input.html', htmlInput, (err) => {
                 //     if(err) throw err;
                 // });
 
-                let textDisplay = document.getElementById('display');
-                let iframeDisplay = document.getElementById('render');
+                let html = document.getElementById('html');
+                let preview = document.getElementById('preview');
 
-                if (textDisplay.style.display == 'block') {
-                    textDisplay.style.display = 'none'
-                    iframeDisplay.style.display = 'block'
+                if (html.style.display == 'block') {
+                    html.style.display = 'none'
+                    preview.style.display = 'block'
                 }
             }
             let htmlTab = document.getElementById("html-tab");
             htmlTab.onclick = (e) => {
-                let textDisplay = document.getElementById('display');
-                let iframeDisplay = document.getElementById('render');
+                let html = document.getElementById('html');
+                let preview = document.getElementById('preview');
 
-                if (iframeDisplay.style.display == 'block') {
-                    iframeDisplay.style.display = 'none'
-                    textDisplay.style.display = 'block'
+                if (preview.style.display == 'block') {
+                    preview.style.display = 'none'
+                    html.style.display = 'block'
                 }
             }
             
@@ -201,6 +206,28 @@
                 requestAnimationFrame(renderFrame);
                 render(theCanvas.getContext("2d"));
             })();
+
+            function escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            function updatePreview() {
+                let preview = "", html = "";
+                for (let element of elements) {
+                    let encoded = element.html();
+                    preview += encoded;
+                    html += escapeHtml(encoded);
+                }
+                thePreview.innerHTML = preview;
+                theHTML.innerHTML = html;
+            }
+
+            setInterval(updatePreview, 1000);
         }
     </script>
 </head>
@@ -222,17 +249,21 @@
         </div><div class="panel" id="display-panel">
             <span class="panel-title">Display</span>
             <span class="panel-tab" id="download-tab">Download</span>
-            <span class="panel-tab" id="render-tab">Render</span>
+            <span class="panel-tab" id="preview-tab">Preview</span>
             <span class="panel-tab" id="html-tab">HTML</span><br>
             <div class="html-display">
                 <div class="scrollbox">
-                    <div class="display-body" id="display" style="display: block">
+                    <div class="display-body" id="preview" style="display: block">
                         <!-- 
-                            Whatever site preview or code display we want should
+                            Whatever site preview we want should
                             go in the innerHtml of this div. 
                         -->
                     </div>
-                    <iframe id="render" src="input.html" width="99%" height="98%" style="display: none"></iframe>
+                    <div class="display-body" id="html" style="display: none"></div>
+                        <!-- 
+                            Whatever code display we want should
+                            go in the innerHtml of this div. 
+                        -->
                 </div>
             </div>
         </div>

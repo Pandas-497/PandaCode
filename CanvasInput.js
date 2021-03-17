@@ -856,6 +856,24 @@
     },
 
     /**
+     * Helper method to split the current text into several 
+     * lines, fitting the width of the canvas.
+     * @returns list of lines
+     */
+    _lines: function() {
+      let lines = [];
+      let words = this.value().split(' ');
+      let line = "";
+      for (let word of words) {
+        if (this._renderCtx.measureText(line + word + " ").width >= this._width - this._padding) 
+          lines.push(line), line = "";
+        line += word + " ";
+      }
+      lines.push(line);
+      return lines;
+    },
+
+    /**
      * Fired with the keydown event to draw the typed characters.
      * @param  {Event}       e    The keydown event.
      * @param  {CanvasInput} self
@@ -1067,6 +1085,9 @@
       if (!ctx) {
         return;
       }
+      let lines = self._lines();
+      self._height = (self._fontSize + 2) * lines.length + (self._padding + self._borderWidth) * 2;
+      ctx.canvas.height = self._height;
 
       // clear the canvas
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -1110,27 +1131,32 @@
 
         // draw the cursor
         if (self._cursor) {
-          var cursorOffset = self._textWidth(text.substring(0, self._cursorPos));
+          let n = 0, i = 0;
+          while (self._cursorPos >= n + lines[i].length) n += lines[i ++].length;
+          var cursorOffset = self._textWidth(lines[i].substring(0, self._cursorPos - n));
           ctx.fillStyle = self._fontColor;
-          ctx.fillRect(paddingBorder + cursorOffset, paddingBorder, 1, self._height);
+          ctx.fillRect(paddingBorder + cursorOffset, paddingBorder + 1 + i * (self._fontSize + 2), 1, self._fontSize + 2);
         }
 
         // draw the text
         var textX = self._padding + self._borderWidth + self.shadowL,
-          textY = Math.round(paddingBorder + self._height / 2);
+          textY = Math.round(paddingBorder * 2) + 4;
 
         // only remove the placeholder text if they have typed something
         text = (text === '' && self._placeHolder) ? self._placeHolder : text;
 
-        ctx.fillStyle = (self._value !== '' && self._value !== self._placeHolder) ? self._fontColor : self._placeHolderColor;
-        ctx.font = self._fontStyle + ' ' + self._fontWeight + ' ' + self._fontSize + 'px ' + self._fontFamily;
-        ctx.shadowColor = self._fontShadowColor;
-        ctx.shadowBlur = self._fontShadowBlur;
-        ctx.shadowOffsetX = self._fontShadowOffsetX;
-        ctx.shadowOffsetY = self._fontShadowOffsetY;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(text, textX, textY);
+        for (let i = 0; i < lines.length; i ++) {
+          let line = lines[i];
+          ctx.fillStyle = (line !== '' && line !== self._placeHolder) ? self._fontColor : self._placeHolderColor;
+          ctx.font = self._fontStyle + ' ' + self._fontWeight + ' ' + self._fontSize + 'px ' + self._fontFamily;
+          ctx.shadowColor = self._fontShadowColor;
+          ctx.shadowBlur = self._fontShadowBlur;
+          ctx.shadowOffsetX = self._fontShadowOffsetX;
+          ctx.shadowOffsetY = self._fontShadowOffsetY;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(line, textX, textY + (self._fontSize + 2) * i);
+        }
 
         // parse inner shadow
         var innerShadow = self._innerShadow.split('px '),
@@ -1405,22 +1431,26 @@
       }
 
       // determine where the click was made along the string
-      var text = self._clipText(value),
+      let lines = self._lines(),
         totalW = 0,
-        pos = text.length;
+        pos = value.length;
 
-      if (x - (self._x + self._extraX) < self._textWidth(text)) {
+      let textY = self._y + self._extraY + 4;
+      let i = Math.floor((y - textY) / (this._fontSize + 2));
+      let n = 0;
+      for (let j = 0; j < i; j ++) n += lines[j].length;
+      if (i < 0 || i >= lines.length) return pos;
+      if (x - (self._x + self._extraX) < self._textWidth(lines[i])) {
         // loop through each character to identify the position
-        for (var i=0; i<text.length; i++) {
-          totalW += self._textWidth(text[i]);
+        for (var j=0; j<lines[i].length; j++) {
+          totalW += self._textWidth(lines[i][j]);
           if (totalW >= x - (self._x + self._extraX)) {
-            pos = i;
-            break;
+            pos = n + j;
+            return pos;
           }
         }
       }
-
-      return pos;
+      return n + lines[i].length - 1;
     },
 
     /**
