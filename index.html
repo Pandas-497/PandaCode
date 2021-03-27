@@ -53,7 +53,8 @@
             let elements = [];
 
             class Tag {
-                constructor(tag, color, hasInput = true, tagclass = Element) {
+                constructor(name, tag, color, hasInput = true, tagclass = Element) {
+                    this.name = name;
                     this.tag = tag;
                     this.tagclass = tagclass;
                     this.color = color;
@@ -87,7 +88,7 @@
                     // Draw button label.
                     ctx.font = "12pt Montserrat";
                     ctx.fillStyle = "white";
-                    ctx.fillText(`<${this.tag}>`, x + 8, y + 24);
+                    ctx.fillText(`${this.name}`, x + 8, y + 24);
                 }
             }
 
@@ -143,10 +144,10 @@
             }
 
             { // init
-                tags.push(new Tag("h1", "blue"));
-                tags.push(new Tag("p", "green"));
-                tags.push(new Tag("a", "magenta", true, Link));
-                tags.push(new Tag("img", "red", true, Image));
+                tags.push(new Tag("header", "h1", "blue"));
+                tags.push(new Tag("paragraph", "p", "green"));
+                tags.push(new Tag("link", "a", "magenta", true, Link));
+                tags.push(new Tag("image", "img", "red", true, Image));
             };
 
             function render(ctx) {
