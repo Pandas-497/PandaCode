@@ -69,15 +69,11 @@
                 hovered(i) {
                     let x = 8;
                     let y = i * 48 + 8;
-                    return mouse.x >= x && mouse.y >= y && mouse.x <= x + 80 && mouse.y <= y + 40;
+                    return mouse.x >= x && mouse.y >= y && mouse.x <= x + 112 && mouse.y <= y + 40;
                 }
 
-                click(i, canvas) {
-                    let x = 8;
-                    let y = i * 48 + 8;
-                    if (this.hovered(i)) {
-                        elements.push(new this.tagclass(240, 120, this, canvas));
-                    }
+                createElement(i, canvas) {
+                    return new this.tagclass(240, 120, this, canvas);
                 }
 
                 draw(i, ctx) {
@@ -88,7 +84,7 @@
                     // Draw button background.
                     ctx.fillStyle = this.color;
                     let hovering = this.hovered(i);
-                    ctx.fillRect(hovering ? x - 2 : x, hovering ? y - 2 : y, hovering ? 84 : 80, hovering ? 44 : 40);
+                    ctx.fillRect(hovering ? x - 2 : x, hovering ? y - 2 : y, hovering ? 116 : 112, hovering ? 44 : 40);
                     
                     // Draw button label.
                     ctx.font = "12pt Montserrat";
@@ -154,7 +150,7 @@
             }
 
             function iterateElements(callable) {                
-                let x = 108;
+                let x = 140;
                 let y = 8;
                 for (let i = 0; i < elements.length; i ++) {
                     callable(elements[i], x, y);
@@ -169,15 +165,15 @@
             let isMouseDown = false;
             theCanvas.onmousedown = (e) => {
                 isMouseDown = true;
-                
-                // Attempt click for every tag button.
-                for (let i = 0; i < tags.length; i ++) {
-                    tags[i].click(i, theCanvas);
-                }
             }
 
             theCanvas.onmouseup = (e) => {
                 isMouseDown = false;
+                if (draggedElement == undefined) {
+                    for (let i = 0; i < tags.length; i ++) {
+                        if (tags[i].hovered(i)) elements.push(tags[i].createElement(i, theCanvas));
+                    }
+                }
             }
 
             class Link extends Element {
@@ -208,7 +204,16 @@
                 // Handle dragging elements.
                 if (draggedElement == undefined && Math.hypot(mouse.x - dragPoint.x, mouse.y - dragPoint.y) > 16) { 
                     let found = false;
-                    iterateElements((e, x, y) => { // Find first targeted element
+                    // Attempt click for every tag button.
+                    for (let i = 0; i < tags.length; i ++) {
+                        if (tags[i].hovered(i)) {
+                            found = true;
+                            draggedElement = tags[i].createElement(i, theCanvas);
+                            dragOffset.x = mouse.x - 8;
+                            dragOffset.y = mouse.y - (8 + i * 48);
+                        }
+                    }
+                    if (!found) iterateElements((e, x, y) => { // Find first targeted element
                         if (e.hovered(x, y) && !found) {
                             found = true;
                             draggedElement = e;
@@ -269,9 +274,9 @@
                 }
 
                 ctx.fillStyle = "white";
-                ctx.fillRect(0, 0, 96, theCanvas.height);
+                ctx.fillRect(0, 0, 128, theCanvas.height);
                 ctx.fillStyle = "black";
-                ctx.fillRect(96, 0, 2, theCanvas.height);
+                ctx.fillRect(128, 0, 2, theCanvas.height);
 
                 // Draw tag buttons.
                 for (let i = 0; i < tags.length; i ++) {
