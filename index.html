@@ -10,6 +10,10 @@
     <meta property="og:title" content="PandaCode">
     <meta property="og:description" content="Learn web programming!">
     <meta property="og:image" content="favicon.png">
+    <div style="display:none;">
+        <img id="binImg" src="bin.png">
+        <img id="binWhiteImg" src="binWhite.png">
+    </div>
     <script src="CanvasInput.js"></script>
     <script>
         window.requestAnimFrame = (function(){
@@ -39,6 +43,7 @@
 
             // Tracking mouse position. We can use mouse.x and mouse.y to get
             // mouse coordinates within to the canvas.
+            let dragFrom = { x: 0, y: 0 };
             let mouse = { x: 0, y: 0 };
             theCanvas.onmousemove = (e) => {
                 mouse.x = e.offsetX;
@@ -71,7 +76,7 @@
                     let x = 8;
                     let y = i * 48 + 8;
                     if (this.hovered(i)) {
-                        elements.push(new this.tagclass(this, canvas, 240, 120));
+                        elements.push(new this.tagclass(240, 120, this, canvas));
                     }
                 }
 
@@ -92,12 +97,17 @@
                 }
             }
 
+            const CLASS_PLACEHOLDER = "placeholder",
+                  CLASS_PARAGRAPH = "paragraph",
+                  CLASS_INLINE = "inline";
+
             class Element {
-                constructor(button, canvas, w, h) {
+                constructor(w, h, button, canvas) {
+                    this.elementclass = button == undefined ? CLASS_PLACEHOLDER : CLASS_PARAGRAPH;
                     this.button = button;
                     this.w = w;
                     this.h = h;
-                    this.input = new CanvasInput({
+                    this.input = this.elementclass == CLASS_PLACEHOLDER ? undefined : new CanvasInput({
                         canvas: canvas,
                         width: w - 28,
                         height: 24,
@@ -109,12 +119,24 @@
                 }
 
                 height() {
-                    return 56 + this.input.height();
+                    if (this.elementclass == CLASS_PLACEHOLDER) return this.h;
+                    else if (this.elementclass == CLASS_PARAGRAPH) return 56 + this.input.height();
+                }
+
+                hovered(x, y) {
+                    return mouse.x >= x && mouse.y >= y && mouse.x <= x + this.w && mouse.y <= y + this.height();
                 }
 
                 draw(x, y, ctx) {
+                    if (this.elementclass == CLASS_PLACEHOLDER) {
+                        ctx.fillStyle = "gray";
+                        ctx.fillRect(x + 2, y + 2, this.w - 4, this.height() - 4);
+                        return;
+                    }
+
                     ctx.fillStyle = this.button.color;
-                    ctx.fillRect(x, y, this.w, this.height());
+                    if (this.hovered(x, y)) ctx.fillRect(x - 2, y - 2, this.w + 4, this.height() + 4);
+                    else ctx.fillRect(x, y, this.w, this.height());
                     this.input._x = x + 8;
                     this.input._y = y + 28;
                     this.input.render(ctx);
@@ -129,6 +151,33 @@
                 html() {
                     return `<${this.button.tag}>${this.input.value()}</${this.button.tag}>`;
                 }
+            }
+
+            function iterateElements(callable) {                
+                let x = 108;
+                let y = 8;
+                for (let i = 0; i < elements.length; i ++) {
+                    callable(elements[i], x, y);
+                    y += elements[i].height() + 8;
+                }
+            }
+
+            function removeElement(element) {
+                elements.splice(elements.indexOf(element), 1);
+            }
+
+            let isMouseDown = false;
+            theCanvas.onmousedown = (e) => {
+                isMouseDown = true;
+                
+                // Attempt click for every tag button.
+                for (let i = 0; i < tags.length; i ++) {
+                    tags[i].click(i, theCanvas);
+                }
+            }
+
+            theCanvas.onmouseup = (e) => {
+                isMouseDown = false;
             }
 
             class Link extends Element {
@@ -150,6 +199,49 @@
                 tags.push(new Tag("image", "img", "red", true, Image));
             };
 
+            let draggedElement = undefined;
+            let dragPoint = { x: 0, y: 0 };
+            let dragOffset = { x: 0, y: 0 };
+            function update() {
+                if (!isMouseDown) dragPoint.x = mouse.x, dragPoint.y = mouse.y;
+
+                // Handle dragging elements.
+                if (draggedElement == undefined && Math.hypot(mouse.x - dragPoint.x, mouse.y - dragPoint.y) > 16) { 
+                    let found = false;
+                    iterateElements((e, x, y) => { // Find first targeted element
+                        if (e.hovered(x, y) && !found) {
+                            found = true;
+                            draggedElement = e;
+                            dragOffset.x = mouse.x - x;
+                            dragOffset.y = mouse.y - y;
+                        }
+                    });
+                    if (draggedElement != undefined) {
+                        elements[elements.indexOf(draggedElement)] = new Element(draggedElement.w, draggedElement.height());
+                    }
+                }
+
+                if (draggedElement != undefined) {
+                    if (mouse.x > 96 && isMouseIn(0, 0, theCanvas.width, theCanvas.height)) { // if it's in the element area
+                        elements = elements.filter((v) => v.elementclass != CLASS_PLACEHOLDER);
+                        let i = 0;
+                        iterateElements((e, x, y) => {
+                            if (y < mouse.y - dragOffset.y) i ++;
+                        });
+                        if (!isMouseDown) {
+                            if (!isMouseIn(theCanvas.width - 80, theCanvas.height - 80, 80, 80)) // if not over trash can
+                                elements.splice(i, 0, draggedElement);
+                            draggedElement = undefined;
+                            dragOffset.x = 0;
+                            dragOffset.y = 0;
+                        }
+                        else {
+                            elements.splice(i, 0, new Element(draggedElement.w, draggedElement.height()));
+                        }
+                    }
+                }
+            }
+
             function render(ctx) {
                 // Example render behavior. We'll want to replace the button rendering
                 // with something more sophisticated in the future.
@@ -158,27 +250,32 @@
                 // Clear canvas to start a new frame.
                 ctx.clearRect(0, 0, ctx.width, ctx.height);
 
+                // Draw trash can.
+                let trashHover = draggedElement != undefined && isMouseIn(theCanvas.width - 80, theCanvas.height - 80, 80, 80);
+                if (trashHover) {
+                    ctx.fillStyle = "black";
+                    ctx.beginPath();
+                    ctx.arc(theCanvas.width - 40, theCanvas.height - 40, 36, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.drawImage(document.getElementById(trashHover ? "binWhiteImg" : "binImg"), theCanvas.width - 64, theCanvas.height - 64, 48, 48);
+
+                // Draw elements.
+                iterateElements((e, x, y) => e.draw(x, y, ctx));
+
+                // Draw dragged element, if any.
+                if (draggedElement != undefined) {
+                    draggedElement.draw(mouse.x - dragOffset.x, mouse.y - dragOffset.y, ctx);
+                }
+
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, 96, theCanvas.height);
+                ctx.fillStyle = "black";
+                ctx.fillRect(96, 0, 2, theCanvas.height);
+
                 // Draw tag buttons.
                 for (let i = 0; i < tags.length; i ++) {
                     tags[i].draw(i, ctx);
-                }
-
-                ctx.fillStyle = "black";
-                ctx.fillRect(96, 0, 2, 400);
-
-                // Draw elements.
-                let x = 108;
-                let y = 8;
-                for (let i = 0; i < elements.length; i ++) {
-                    elements[i].draw(x, y, ctx);
-                    y += elements[i].height() + 8;
-                }
-            }
-
-            theCanvas.onclick = (e) => {
-                // Attempt click for every tag button.
-                for (let i = 0; i < tags.length; i ++) {
-                    tags[i].click(i, theCanvas);
                 }
             }
 
@@ -220,6 +317,7 @@
             
             (function renderFrame() {
                 requestAnimationFrame(renderFrame);
+                update();
                 render(theCanvas.getContext("2d"));
             })();
 
