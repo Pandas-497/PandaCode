@@ -125,7 +125,7 @@
 
                 draw(x, y, ctx) {
                     if (this.elementclass == CLASS_PLACEHOLDER) {
-                        ctx.fillStyle = "gray";
+                        ctx.fillStyle = "lightgray";
                         ctx.fillRect(x + 2, y + 2, this.w - 4, this.height() - 4);
                         return;
                     }
@@ -203,7 +203,13 @@
 
                 // Handle dragging elements.
                 if (draggedElement == undefined && Math.hypot(mouse.x - dragPoint.x, mouse.y - dragPoint.y) > 16) { 
-                    let found = false;
+                    let found = false, needsPlaceholder = false;
+                    
+                    // We pretend the dragpoint is the mouse to avoid picking 
+                    // a different element than the initially-clicked one.
+                    let tmp = mouse;
+                    mouse = dragPoint; 
+                    
                     // Attempt click for every tag button.
                     for (let i = 0; i < tags.length; i ++) {
                         if (tags[i].hovered(i)) {
@@ -213,15 +219,23 @@
                             dragOffset.y = mouse.y - (8 + i * 48);
                         }
                     }
-                    if (!found) iterateElements((e, x, y) => { // Find first targeted element
+
+                    // Otherwise, attempt move for every element.
+                    if (!found) iterateElements((e, x, y) => {
                         if (e.hovered(x, y) && !found) {
                             found = true;
+                            needsPlaceholder = true;
                             draggedElement = e;
                             dragOffset.x = mouse.x - x;
                             dragOffset.y = mouse.y - y;
                         }
                     });
-                    if (draggedElement != undefined) {
+
+                    // Restore mouse.
+                    mouse = tmp;
+
+                    // Replace element with placeholder if necessary.
+                    if (draggedElement != undefined && needsPlaceholder) {
                         elements[elements.indexOf(draggedElement)] = new Element(draggedElement.w, draggedElement.height());
                     }
                 }
