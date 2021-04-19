@@ -291,7 +291,7 @@
                 e.preventDefault();
                 let totalHeight = 0;
                 for (const element of elements) totalHeight += element.height() + 8;
-                scrollY += e.deltaY * 5;
+                scrollY += e.deltaY * 3;
                 if (scrollY < 0) scrollY = 0;
                 let limit = Math.max(0, totalHeight + 8 - theCanvas.height);
                 if (scrollY > limit) scrollY = limit;
@@ -329,7 +329,7 @@
                 html() {
                     let text = this.getinput("text");
                     if (text.length == 0) text = this.getinput("url");
-                    return `<p><${this.button.tag} href=\"${this.getinput("url")}\">${text}</${this.button.tag}></p>`;
+                    return `<${this.button.tag} href=\"${this.getinput("url")}\">${text}</${this.button.tag}>`;
                 }
             }
 
@@ -475,7 +475,10 @@
                 ctx.drawImage(document.getElementById(trashHover ? "binWhiteImg" : "binImg"), theCanvas.width - 64, theCanvas.height - 64, 48, 48);
 
                 // Draw elements.
-                iterateElements((e, x, y) => e.draw(x, y, ctx));
+                iterateElements((e, x, y) => {
+                    if (y <= theCanvas.height && y + e.height() >= 0) // Only draw onscreen elements.
+                        e.draw(x, y, ctx);
+                });
 
                 // Draw dragged element, if any.
                 if (draggedElement != undefined) {
