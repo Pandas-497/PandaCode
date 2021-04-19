@@ -106,12 +106,20 @@
                     this.button = button;
                     this.w = w;
                     this.h = h;
-                    this.inputs = button == undefined ? {} : button.attributes;
-                    for (const e of this.inputs.entries()) {
-                        e.value = new CanvasInput({
+                    this.hasChildren = button == undefined ? false : button.hasChildren;
+                    this.children = [];
+                    this.longestProp = 0;
+                    if (button != undefined) for (const prop in button.attributes) {
+                        this.longestProp = Math.max(this.longestProp, canvas.getContext("2d").measureText(prop).width);
+                    }
+                    this.inputs = {};
+                    if (button != undefined) for (const prop in button.attributes) {
+                        this.inputs[prop] = new CanvasInput({
                             canvas: canvas,
-                            width: w - 28,
-                            height: 24,
+                            width: w - 22 - (prop.length == 0 ? 0 : this.longestProp + 8),
+                            height: 18,
+                            fontSize: 12,
+                            padding: 3,
                             borderRadius: 0,
                             borderColor: "white",
                             boxShadow: "0px 0px 0px 0px",
@@ -120,50 +128,181 @@
                     }
                 }
 
+                childrenHeight() {
+                    if (!this.hasChildren) return 0;
+                    let childrenHeight = 12;
+                    for (const obj of this.children) childrenHeight += 6 + obj.height();
+                    return childrenHeight;
+                }
+
                 height() {
                     if (this.elementclass == CLASS_PLACEHOLDER) return this.h;
-                    else if (this.elementclass == CLASS_PARAGRAPH) return 56 + this.input.height();
+                    else if (this.elementclass == CLASS_PARAGRAPH) {
+                        let labelHeight = this.button.tag.length == 0 ? 0 : 24;
+                        let totalHeight = 0;
+                        for (const prop in this.inputs) totalHeight += this.inputs[prop].height();
+                        return 12 + labelHeight + 6 * Object.keys(this.inputs).length + totalHeight + this.childrenHeight();
+                    }
+                }
+
+                isinbox(x, y, w, h) {
+                    return mouse.x >= x && mouse.y >= y && mouse.x <= x + w && mouse.y <= y + h;
                 }
 
                 hovered(x, y) {
-                    return mouse.x >= x && mouse.y >= y && mouse.x <= x + this.w && mouse.y <= y + this.height();
+                    if (this.hasChildren) {
+                        let h = this.height();
+                        let ch = this.childrenHeight();
+                        return this.isinbox(x, y, this.w, h - ch - 16) || this.isinbox(x, y, 20, h) || this.isinbox(x, y + h - 20, this.w, 20);
+                    }
+                    else return mouse.x >= x && mouse.y >= y && mouse.x <= x + this.w && mouse.y <= y + this.height();
+                }
+
+                childrenHovered(x, y) {
+                    if (!this.hasChildren) return false;
+                    let ch = this.childrenHeight();
+                    return this.isinbox(x + 27, y + this.height() - ch - 16, this.w + 27, ch);
+                }
+
+                getHoveredChild(x, y) {
+                    if (!this.hasChildren) return undefined;
+                    let tx = x + 27;
+                    let ty = y + this.height() - this.childrenHeight() - 10;
+                    let found = false;
+                    for (let i = 0; i < this.children.length; i ++) {
+                        let c = this.children[i];
+                        if (c.hovered(tx, ty) && !found && !c.intextbox(dragPoint.x, dragPoint.y)) {
+                            return {
+                                element: c,
+                                list: this.children,
+                                x: mouse.x - tx,
+                                y: mouse.y - ty
+                            };
+                        }
+                        else if (c.hasChildren && c.childrenHovered(tx, ty)) {
+                            let recfound = c.getHoveredChild(tx, ty);
+                            if (recfound != undefined) return recfound;
+                        }
+                        ty += c.height();
+                    }
+                    return undefined;
+                }
+
+                findInsertionPoint(x, y) {
+                    let i = 0;     
+                    let tx = x + 27;
+                    let ty = y + this.height() - this.childrenHeight() - 10;
+                    for (const child of this.children) {
+                        if (ty < mouse.y - dragOffset.y) i ++;
+                        if (child.hasChildren && child.childrenHovered(tx, ty)) return child.findInsertionPoint(tx, ty);
+                        ty += child.height() + 8;
+                    }
+                    return { list: this.children, i: i };
                 }
 
                 draw(x, y, ctx) {
+                    let height = this.height();
+
                     if (this.elementclass == CLASS_PLACEHOLDER) {
                         ctx.fillStyle = "lightgray";
-                        ctx.fillRect(x + 2, y + 2, this.w - 4, this.height() - 4);
+                        ctx.fillRect(x + 2, y + 2, this.w - 4, height - 4);
                         return;
                     }
 
                     ctx.fillStyle = this.button.color;
-                    if (this.hovered(x, y)) ctx.fillRect(x - 2, y - 2, this.w + 4, this.height() + 4);
-                    else ctx.fillRect(x, y, this.w, this.height());
-                    this.input._x = x + 8;
-                    this.input._y = y + 28;
-                    this.input.render(ctx);
-                    ctx.font = "10pt Montserrat";
-                    ctx.fillStyle = "white";
-                    ctx.fillText(`<${this.button.tag}>`, x + 8, y + 19);
-                    ctx.font = "10pt Montserrat";
-                    ctx.fillStyle = "white";
-                    ctx.fillText(`</${this.button.tag}>`, x + 8, y + 47 + this.input.height());
+                    // upper box
+                    let childrenHeight = this.childrenHeight();
+                    if (this.hovered(x, y)) ctx.fillRect(x - 2, y - 2, this.w + 4, height - childrenHeight - 12);
+                    else ctx.fillRect(x, y, this.w, height - childrenHeight - 16);
+                    // lower box
+                    if (this.hovered(x, y)) ctx.fillRect(x - 2, y + height - 22, this.w + 4, 24);
+                    else ctx.fillRect(x, y + height - 20, this.w, 20);
+                    // connector
+                    if (this.hasChildren) {
+                        if (this.hovered(x, y)) ctx.fillRect(x - 2, y - 2, 24, height + 4);
+                        else ctx.fillRect(x, y, 20, height);
+                    }
+                    let offset = this.button.tag.length == 0 ? 0 : 11;
+                    for (const prop in this.inputs) {
+                        if (prop.length != 0) {
+                            ctx.font = "8pt Montserrat";
+                            ctx.fillStyle = "white";
+                            ctx.fillText(prop, x + this.longestProp - ctx.measureText(prop).width, y + 23 + offset);
+                        }
+                        this.inputs[prop]._x = x + 7 + (prop.length == 0 ? 0 : this.longestProp);
+                        this.inputs[prop]._y = y + offset + 9;
+                        this.inputs[prop].render(ctx);
+                        offset += this.inputs[prop].height() + 6;
+                    }
+                    if (this.hasChildren) {
+                        let childOffset = 7;
+                        for (const child of this.children) {
+                            child.draw(x + 27, y + childOffset + height - childrenHeight - 16, ctx);
+                            childOffset += child.height() + 6;
+                        }
+                    }
+                    if (this.button.tag.length > 0) {
+                        ctx.font = "8pt Montserrat";
+                        ctx.fillStyle = "white";
+                        ctx.fillText(`<${this.button.tag}>`, x + 7, y + 14);
+                        ctx.font = "8pt Montserrat";
+                        ctx.fillStyle = "white";
+                        ctx.fillText(`</${this.button.tag}>`, x + 7, y + 19 + offset + childrenHeight);
+                    }
+                }
+
+                intextbox(x, y) {
+                    for (const prop in this.inputs) {
+                        let i = this.inputs[prop];
+                        if (x >= i._x && y >= i._y && x <= i._x + i.width() && y <= i._y + i.height()) return true;
+                    }
+                    return false;
+                }
+
+                hasinput(key) {
+                    return key in this.inputs;
                 }
 
                 getinput(key) {
-                    return 
+                    return this.inputs[key].value();
                 }
 
                 html() {
-                    return `<${this.button.tag}>${this.input.value()}</${this.button.tag}>`;
+                    if (this.button == undefined) return ""; // placeholder element
+
+                    let bodyText = this.hasinput("") ? this.getinput("") : "";
+                    if (this.button.tag.length == 0) return bodyText;
+                    let attrs = "";
+                    let first = true;
+                    for (const prop in this.inputs) if (prop.length > 0) {
+                        if (!first) attrs += " ";
+                        attrs += `${prop}=${this.getinput(prop)}`;
+                        first = false;
+                    }
+                    let children = "";
+                    for (const child of this.children) children += child.html();
+                    return `<${this.button.tag} ${attrs}>${bodyText} ${children}</${this.button.tag}>`;
                 }
             }
 
+            let scrollY = 0;
+
+            theCanvas.onwheel = (e) => {
+                e.preventDefault();
+                let totalHeight = 0;
+                for (const element of elements) totalHeight += element.height() + 8;
+                scrollY += e.deltaY * 5;
+                if (scrollY < 0) scrollY = 0;
+                let limit = Math.max(0, totalHeight + 8 - theCanvas.height);
+                if (scrollY > limit) scrollY = limit;
+            };
+
             function iterateElements(callable) {                
                 let x = 140;
-                let y = 8;
+                let y = 8 - scrollY;
                 for (let i = 0; i < elements.length; i ++) {
-                    callable(elements[i], x, y);
+                    let result = callable(elements[i], x, y);
+                    if (result != undefined) return result;
                     y += elements[i].height() + 8;
                 }
             }
@@ -188,26 +327,55 @@
 
             class Link extends Element {
                 html() {
-                    return `<p><${this.button.tag} href=\"${this.input.value()}\">${this.input.value()}</${this.button.tag}></p>`;
+                    let text = this.getinput("text");
+                    if (text.length == 0) text = this.getinput("url");
+                    return `<p><${this.button.tag} href=\"${this.getinput("url")}\">${text}</${this.button.tag}></p>`;
                 }
             }
 
             class Image extends Element {
                 html() {
-                    return `<${this.button.tag} src=${this.input.value()}>`;
+                    let dims = " ";
+                    if (this.getinput("width").length > 0) dims += `width=${this.getinput("width")}px `;
+                    if (this.getinput("height").length > 0) dims += `height=${this.getinput("height")}px `;
+                    return `<${this.button.tag}${dims}src=\"${this.getinput("url")}\" alt="ERROR: invalid link, cannot display image :(">`;
                 }
             }
 
             { // init
                 tags.push(new Tag("header", "h1", "blue", {}, true));
                 tags.push(new Tag("paragraph", "p", "green", {}, true));
-                tags.push(new Tag("link", "a", "magenta", {"url": INPUT_TEXT}, false, Link));
+                tags.push(new Tag("text", "", "gray", {"": INPUT_TEXT}, false));
+                tags.push(new Tag("link", "a", "magenta", {"url": INPUT_TEXT, "text": INPUT_TEXT}, false, Link));
                 tags.push(new Tag("image", "img", "red", {"url": INPUT_TEXT, "width": INPUT_TEXT, "height": INPUT_TEXT}, false, Image));
+                // tags.push(new Tag("header", "h1", "blue", "Type a title here!"));
+                // tags.push(new Tag("paragraph", "p", "green", "Type a paragraph here!"));
+                // tags.push(new Tag("link", "a", "magenta", "Type a link here!", true, Link));
+                // tags.push(new Tag("image", "img", "red", "Paste a link to an image here!", true, Image));
             };
 
             let draggedElement = undefined;
             let dragPoint = { x: 0, y: 0 };
             let dragOffset = { x: 0, y: 0 };
+
+            function removePlaceholders(elements) {
+                for (const e of elements) {
+                    if (e.hasChildren) e.children = removePlaceholders(e.children);
+                }
+                return elements.filter(e => e.elementclass != CLASS_PLACEHOLDER);
+            }
+
+            function findInsertionPoint() {
+                let i = 0;                
+                let result = iterateElements((e, x, y) => {
+                    if (y < mouse.y - dragOffset.y) i ++;
+                    if (e.hasChildren && e.childrenHovered(x, y)) return e.findInsertionPoint(x, y);
+                    y += e.height() + 8;
+                });
+                if (result != undefined) return result;
+                return { list: elements, i: i };
+            }
+
             function update() {
                 if (!isMouseDown) dragPoint.x = mouse.x, dragPoint.y = mouse.y;
 
@@ -230,14 +398,27 @@
                         }
                     }
 
+                    let containingList = elements;
+
                     // Otherwise, attempt move for every element.
                     if (!found) iterateElements((e, x, y) => {
-                        if (e.hovered(x, y) && !found) {
+                        if (e.hovered(x, y) && !found && !e.intextbox(dragPoint.x, dragPoint.y)) {
                             found = true;
                             needsPlaceholder = true;
                             draggedElement = e;
                             dragOffset.x = mouse.x - x;
                             dragOffset.y = mouse.y - y;
+                        }
+                        else if (e.hasChildren && e.childrenHovered(x, y) && !found) {
+                            let recfound = e.getHoveredChild(x, y);
+                            if (recfound != undefined) {
+                                found = true;
+                                needsPlaceholder = true;
+                                draggedElement = recfound.element;
+                                containingList = recfound.list;
+                                dragOffset.x = recfound.x;
+                                dragOffset.y = recfound.y;
+                            }
                         }
                     });
 
@@ -246,26 +427,30 @@
 
                     // Replace element with placeholder if necessary.
                     if (draggedElement != undefined && needsPlaceholder) {
-                        elements[elements.indexOf(draggedElement)] = new Element(draggedElement.w, draggedElement.height());
+                        containingList[containingList.indexOf(draggedElement)] = new Element(draggedElement.w, draggedElement.height());
                     }
                 }
 
                 if (draggedElement != undefined) {
                     if (mouse.x > 96 && isMouseIn(0, 0, theCanvas.width, theCanvas.height)) { // if it's in the element area
-                        elements = elements.filter((v) => v.elementclass != CLASS_PLACEHOLDER);
-                        let i = 0;
-                        iterateElements((e, x, y) => {
-                            if (y < mouse.y - dragOffset.y) i ++;
-                        });
-                        if (!isMouseDown) {
-                            if (!isMouseIn(theCanvas.width - 80, theCanvas.height - 80, 80, 80)) // if not over trash can
-                                elements.splice(i, 0, draggedElement);
-                            draggedElement = undefined;
-                            dragOffset.x = 0;
-                            dragOffset.y = 0;
+                        elements = removePlaceholders(elements);
+                        if (isMouseIn(theCanvas.width - 80, theCanvas.height - 80, 80, 80)) { // trash can
+                            if (!isMouseDown) {
+                                draggedElement = undefined;
+                                dragOffset = { x: 0, y: 0 };
+                            }
                         }
                         else {
-                            elements.splice(i, 0, new Element(draggedElement.w, draggedElement.height()));
+                            let point = findInsertionPoint();
+                            if (!isMouseDown) {
+                                point.list.splice(point.i, 0, draggedElement);
+                                draggedElement = undefined;
+                                dragOffset.x = 0;
+                                dragOffset.y = 0;
+                            }
+                            else {
+                                point.list.splice(point.i, 0, new Element(draggedElement.w, draggedElement.height()));
+                            }
                         }
                     }
                 }
@@ -370,7 +555,7 @@
                 theHTML.innerHTML = html;
             }
 
-            setInterval(updatePreview, 1000);
+            setInterval(updatePreview, 250);
         }
     </script>
 </head>
