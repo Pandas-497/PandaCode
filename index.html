@@ -58,12 +58,13 @@
             let elements = [];
 
             class Tag {
-                constructor(name, tag, color, hasInput = true, tagclass = Element) {
+                constructor(name, tag, color, attributes = {}, hasChildren = false, tagclass = Element) {
                     this.name = name;
                     this.tag = tag;
                     this.tagclass = tagclass;
                     this.color = color;
-                    this.hasInput = hasInput;
+                    this.attributes = attributes;
+                    this.hasChildren = hasChildren;
                 }
 
                 hovered(i) {
@@ -97,21 +98,26 @@
                   CLASS_PARAGRAPH = "paragraph",
                   CLASS_INLINE = "inline";
 
+            const INPUT_TEXT = "text";
+
             class Element {
                 constructor(w, h, button, canvas) {
                     this.elementclass = button == undefined ? CLASS_PLACEHOLDER : CLASS_PARAGRAPH;
                     this.button = button;
                     this.w = w;
                     this.h = h;
-                    this.input = this.elementclass == CLASS_PLACEHOLDER ? undefined : new CanvasInput({
-                        canvas: canvas,
-                        width: w - 28,
-                        height: 24,
-                        borderRadius: 0,
-                        borderColor: "white",
-                        boxShadow: "0px 0px 0px 0px",
-                        innerShadow: "0px 0px 0px 0px"
-                    });
+                    this.inputs = button == undefined ? {} : button.attributes;
+                    for (const e of this.inputs.entries()) {
+                        e.value = new CanvasInput({
+                            canvas: canvas,
+                            width: w - 28,
+                            height: 24,
+                            borderRadius: 0,
+                            borderColor: "white",
+                            boxShadow: "0px 0px 0px 0px",
+                            innerShadow: "0px 0px 0px 0px"
+                        });
+                    }
                 }
 
                 height() {
@@ -142,6 +148,10 @@
                     ctx.font = "10pt Montserrat";
                     ctx.fillStyle = "white";
                     ctx.fillText(`</${this.button.tag}>`, x + 8, y + 47 + this.input.height());
+                }
+
+                getinput(key) {
+                    return 
                 }
 
                 html() {
@@ -189,10 +199,10 @@
             }
 
             { // init
-                tags.push(new Tag("header", "h1", "blue"));
-                tags.push(new Tag("paragraph", "p", "green"));
-                tags.push(new Tag("link", "a", "magenta", true, Link));
-                tags.push(new Tag("image", "img", "red", true, Image));
+                tags.push(new Tag("header", "h1", "blue", {}, true));
+                tags.push(new Tag("paragraph", "p", "green", {}, true));
+                tags.push(new Tag("link", "a", "magenta", {"url": INPUT_TEXT}, false, Link));
+                tags.push(new Tag("image", "img", "red", {"url": INPUT_TEXT, "width": INPUT_TEXT, "height": INPUT_TEXT}, false, Image));
             };
 
             let draggedElement = undefined;
