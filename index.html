@@ -421,6 +421,12 @@
                 }
             }
 
+            class Icon extends Element {
+                html() {
+                    return `<link rel="icon" href="${this.getinput("url")}">`;
+                }
+            }
+
             { // init
                 categories.push(new Category("blocks", [ // paragraphs
                     new Tag("header", "h1", "blue", {"align": INPUT_TEXT, "color": INPUT_TEXT}, true),
@@ -440,6 +446,10 @@
                     new Tag("number list", "ol", "MediumAquaMarine", {}, true, List),
                     new Tag("bullet list", "ul", "darkcyan", {}, true, List),
                     new Tag("line", "hr", "OliveDrab") // TODO: remove closing tag
+                ]));
+                categories.push(new Category("meta", [ // meta stuff
+                    new Tag("title", "title", "goldenrod", {"": INPUT_TEXT}),
+                    new Tag("icon", "icon", "darkorange", {"url": INPUT_TEXT}, false, Icon)
                 ]));
                 // outer blocks
                                                                                                                                        
