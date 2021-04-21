@@ -123,7 +123,7 @@
                             borderRadius: 0,
                             borderColor: "white",
                             boxShadow: "0px 0px 0px 0px",
-                            innerShadow: "0px 0px 0px 0px"
+                            innerShadow: "0px 0px 0px 0px",
                         });
                     }
                 }
@@ -276,7 +276,12 @@
                     let first = true;
                     for (const prop in this.inputs) if (prop.length > 0) {
                         if (!first) attrs += " ";
-                        attrs += `${prop}=${this.getinput(prop)}`;
+                        if (prop == "color" || prop == "background-color") {
+                            attrs += `style=${prop}:${this.getinput(prop)}`
+                        }
+                        else {
+                            attrs += `${prop}=${this.getinput(prop)}`;
+                        }
                         first = false;
                     }
                     let children = "";
@@ -343,12 +348,21 @@
             }
 
             { // init
-                tags.push(new Tag("header", "h1", "blue", {}, true));
-                tags.push(new Tag("paragraph", "p", "green", {}, true));
+                // outer blocks
+                tags.push(new Tag("header", "h1", "blue", {"align": INPUT_TEXT, "color": INPUT_TEXT}, true));
+                tags.push(new Tag("paragraph", "p", "green", {"align": INPUT_TEXT, "color": INPUT_TEXT}, true));
+                // inner blocks
                 tags.push(new Tag("text", "", "gray", {"": INPUT_TEXT}, false));
                 tags.push(new Tag("link", "a", "magenta", {"url": INPUT_TEXT, "text": INPUT_TEXT}, false, Link));
                 tags.push(new Tag("image", "img", "red", {"url": INPUT_TEXT, "width": INPUT_TEXT, "height": INPUT_TEXT}, false, Image));
+                                                                                                                                       
+                // text styling
                 tags.push(new Tag("bold", "b", "purple", {"": INPUT_TEXT}));
+                tags.push(new Tag("italics", "i", "orange", {"": INPUT_TEXT}));
+                tags.push(new Tag("underline", "u", "pink", {"": INPUT_TEXT}));
+                tags.push(new Tag("break", "br", "black")); // TODO: remove closing tag
+                tags.push(new Tag("line", "hr", "brown")); // TODO: remove closing tag
+                                                                                                                                       
                 // tags.push(new Tag("header", "h1", "blue", "Type a title here!"));
                 // tags.push(new Tag("paragraph", "p", "green", "Type a paragraph here!"));
                 // tags.push(new Tag("link", "a", "magenta", "Type a link here!", true, Link));
